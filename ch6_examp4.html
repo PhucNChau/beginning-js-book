@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Chapter 6: Example 4</title>
+
+    </head>
+    <body>
+        <!--
+        <h2>Handling Events via HTML attributes</h2>
+        <script type="text/javascript">
+            function linkSomePage_onclick()
+            {
+                alert('This link is going nowhere');
+                return false
+            }
+        </script>
+        
+        <a href="ch6_examp3.html" name="linkSomePage" onclick="return linkSomePage_onclick()">
+            Click me
+        </a>
+        -->
+
+        <h2>Handling Events via Object Properties</h2>
+        <script type="text/javascript">
+            function linkOtherPage_onclick()
+            {
+                alert('Enter 0 to cancel, 1 to continue');
+                /*
+                if (resp == "0")
+                {
+                    return false
+                }
+                else
+                {
+                    return true
+                }
+                */
+                return false;
+            }
+        </script>
+        <a href="ch6_examp1&2.html" name="linkOtherPage">
+            Click me
+        </a>
+        <script type="text/javaScript">
+            document.links[0].onclick = linkOtherPage_onclick;
+        </script>
+
+    </body>
+</html>

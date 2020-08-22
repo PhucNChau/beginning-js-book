@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Chapter 6: Example 3</title>
+
+    </head>
+    <body>
+        <h2>Flags</h2>
+        <img name="flagImg" src="" border="1" width="200" height="150" />
+        <script type="text/javaScript">
+            var imgCollections = new Array("usa.gif","newzealand.gif","finland.gif","netherlands.gif");
+            var imgIndex = prompt("Enter a number from 0 to 3", "");
+            
+            document.images["flagImg"].src = imgCollections[imgIndex];
+        </script>
+    </body>
+</html>

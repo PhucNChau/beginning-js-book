@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+
+<htlm>
+    <head>
+        <title>Chapter 5: Example 8</title>
+        <meta charset="utf-8">
+        <script src="CustomerBookingTypes.js"></script>
+        <script src="CinemaTypes.js"></script>
+    </head>
+    <body>
+        <script type="text/javascript">
+            /*
+            var firstBooking = new CustomerBooking(1234, "Robert Smith",
+                "Raging Bull", "25 July 2004 18:20");
+            var secondBooking = new CustomerBooking(1244, "Arnold Palmer",
+                "Toy Story", "27 July 2004 20:15");
+            document.write("1st booking persons name is " +
+                firstBooking.getCustomerName() + "<br />");
+            document.write("2nd booking persons name is " +
+                secondBooking.getCustomerName() + "<br />");
+            */
+            
+            var londonOdeon = new Cinema();
+            londonOdeon.addBooking(342, "Arnold Palmer", "Toy Story", "15 July 2009 20:15");
+            londonOdeon.addBooking(335, "Louise Anderson", "The Shawshank Redemption",
+                "27 July 2009 11:25");
+            londonOdeon.addBooking(566, "Catherine Hughes", "Never Say Nerver",
+                "27 July 2009 17:55");
+            londonOdeon.addBooking(324, "Beci Smith", "Shrek", "29 July 2009 20:15");
+
+            document.write(londonOdeon.GetBookingTable());
+
+        </script>
+    </body>
+</htlm>
