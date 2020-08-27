@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Chapter 6: Example 5</title>
+        <script>
+            var imgCollections = new Array("usa.gif", "finland.gif", "netherlands.gif", "newzealand.gif");
+
+            function changeImage(that)
+            {
+                var newImgNo = Math.round(Math.random() * 3);
+                while (that.src.indexOf(imgCollections[newImgNo]) != -1)
+                {
+                    newImgNo = Math.round(Math.random() * 3);
+                }
+                that.src = imgCollections[newImgNo];
+                
+                return false;
+            }
+        </script>
+    </head>
+    <body>
+        <img name="img0" src="usa.gif" border="0" onclick="return changeImage(this)" />
+        <img name="img1" src="finland.gif" border="0" onclick="return changeImage(this)" />
+    </body>
+</html>
