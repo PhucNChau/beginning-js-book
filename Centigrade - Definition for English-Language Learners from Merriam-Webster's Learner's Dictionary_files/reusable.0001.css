@@ -1,0 +1,41 @@
+/*Universal: large title*/
+.universal_large_title{padding: 20px 0px 6px 0px;font-size:34px;}
+.universal_sub_title{margin:0px;padding: 20px 0 20px 0;font-size:134%;font-weight:bold;}
+
+/*red button*/
+.red_button{background-color:#C80000;color:#fff;border-radius:6px;padding:4px 6px 3px;font-size:14px;border:none;font-weight:bold;}
+.red_button:hover{text-decoration:none;}
+
+/*dotted line: with a text*/
+.ld_dotted_h{background:#ffffff url("/images/general/dots.0001.gif") repeat-x left center;}
+.ld_dotted_h span{background-color: #fff;color:#3692A4;line-height:1.1;font-weight:bold;display:inline-block;margin:0;padding-right:0.8em;}
+
+/*dotted line: with a text grey*/
+.ld_dotted_h2{background:#ffffff url("/images/general/dots.0001.gif") repeat-x left center;}
+.ld_dotted_h2 span{background-color: #fff;color:#757575;line-height:1.1;text-transform:uppercase;font-weight:bold;display:inline-block;margin:0;padding-right:0.8em;}
+
+/*titles + image: on quizzess and pronex pages*/
+.big_title_with_image{padding:20px 0px 6px 0px;overflow: hidden;}
+.big_title_with_image h1{display:block;margin:0px;padding:0px;font-size:34px;font-weight:normal;}
+.big_title_with_image > img{float:left;width:40px;margin:0px 10px 0px 0px;padding:0px;position:relative;}
+
+/*dotted line: standalone*/
+.thin_dots {height:1px;background: url('/images/general/thin_dots.png') repeat-x left top;}
+
+/*dotted line: standalone 2*/
+.athletics-dots {padding:0;background-image:url(/images/general/dots.0001.gif);height:14px;}
+
+/*area headers*/
+.area_header{display:block;margin:0;padding:6px 0 4px 6px;background-color:#E7F5F6;text-transform:uppercase;border-top-left-radius:5px;border-top-right-radius:5px;border-bottom:1px solid #CAE2E6;font-size:11px;letter-spacing:2px;font-weight:600;vertical-align: middle;font-weight:bold;margin-bottom:10px;color:#1122CC;}
+.area_header:hover{text-decoration:none;}
+.area_header > .triangle{position: relative;top:-1px;}
+
+/********************************************************************************
+ * mobile overides
+ ********************************************************************************/
+@media (max-width: 767px) {
+    .universal_large_title{font-size:30px;}
+    .big_title_with_image h1{font-size:30px;}
+    .big_title_with_image img{width:30px;top:2px;}
+    .red_button{font-size:22px;}
+}

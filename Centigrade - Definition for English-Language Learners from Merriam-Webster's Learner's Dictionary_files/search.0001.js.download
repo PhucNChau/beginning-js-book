@@ -1,0 +1,141 @@
+define('search', ['underscore', 'jquery','ads2Refresher'], function (_, $,ads2Refresher) {
+    
+    var module = {};
+    
+    module.init = function() {
+        
+        // init ads refresh
+        ads2Refresher.init();
+        
+        
+        /*
+         * UUID generator
+         */
+        function createUUID() {
+            // http://www.ietf.org/rfc/rfc4122.txt
+            var s = [];
+            var hexDigits = "0123456789abcdef";
+            for (var i = 0; i < 36; i++) {
+                s[i] = hexDigits.substr(Math.floor(Math.random() * 0x10), 1);
+            }
+            s[14] = "4";  // bits 12-15 of the time_hi_and_version field to 0010
+            s[19] = hexDigits.substr((s[19] & 0x3) | 0x8, 1);  // bits 6-7 of the clock_seq_hi_and_reserved to 01
+            s[8] = s[13] = s[18] = s[23] = "-";
+
+            var uuid = s.join("");
+            return uuid;
+        }
+
+        /*
+         * Adding this word into stats -> via asynchronous JS call to a stats server
+         */
+        var ldStatsUrl = '/lapi/1/mp/save?word=' + encodeURIComponent(bestMatch.eidNH) + '&uuid=' + encodeURIComponent(createUUID());
+        var ldStatScript = document.createElement('script');
+        ldStatScript.type = 'text/javascript';
+        ldStatScript.async = true;
+        ldStatScript.src = ldStatsUrl;
+        var s = document.getElementsByTagName('script')[0];
+        s.parentNode.insertBefore(ldStatScript, s);
+
+        /*
+         * Do we need to scroll to the entry?
+         */
+        if (window.location.hash && (window.location.hash.substring(0, 13) === "#ld_entry_v2_")) {
+            $('html, body').stop().animate({
+                scrollTop: $(window.location.hash).offset().top
+            }, 800, 'easeInOutExpo');
+            event.preventDefault();
+        }
+
+        /*
+         * Scrolling to entries
+         */
+        $('.ld_entry_v2_jumplink').bind('click', function (event) {
+            var anchor = $(this);
+            $('html, body').stop().animate({
+                scrollTop: $(anchor.attr('href')).offset().top
+            }, 800, 'easeInOutExpo');
+            event.preventDefault();
+        });
+
+        /*
+         * Saving favorites
+         */
+        $('#ld_entries_v2_all').find('.txt').on('click', function(e){e.preventDefault();
+            thisBtn = $(this).parent()
+            if (thisBtn.hasClass('faved_y')) {
+                window.location.href = "/saved-words";
+            } else {
+                $('#ld_entries_v2_all').find('.save_faves_star').trigger('click');
+            }
+        });
+        $('#ld_entries_v2_all').find('.save_faves_star').on('click', function(e){e.preventDefault();
+            var star = $(this);
+            thisBtn = star.parent()
+            var txt  = thisBtn.find('.txt');
+            var nowType = thisBtn.attr('data-is_faved');
+
+            $.ajax({
+                url: '/lapi/1/ld_favorites/word/' + ((nowType==='y') ? 'delete' : 'save'),
+                dataType: 'json',
+                type: 'POST',
+                data: {
+                    word: bestMatch.eidNH,
+                    isv2: bestMatch.isv2 ? '1' : '0',
+                    dictType: bestMatch.dict_type
+                }
+            }).done(function(ajaxResponse) {
+                if ((nowType === 'y')) {
+                    thisBtn.attr('data-is_faved', 'n');
+                    txt.html(thisBtn.attr('data-save_me'));
+                    thisBtn.removeClass('faved_y');
+                } else {
+                    thisBtn.attr('data-is_faved', 'y');
+                    txt.html(thisBtn.attr('data-remove_me'));
+                    thisBtn.addClass('faved_y');
+                }
+            }).fail( function(response) {
+                if (response.status === 403) {
+                    var currentUrl = window.location.pathname;
+                    currentUrlWithQuery = currentUrl + ((window.location.search !== '') ? '&' : '?') + 'sv';
+                    var redPath = "/auth/login?redirect=" + encodeURI(currentUrlWithQuery);
+                    window.location.href = redPath;
+                } else {
+                    alert('Failed? Try again.');
+                }
+            }).always( function() {});
+        });
+        if (saveMe && !$('#ld_entries_v2_all').find('.save_faves').hasClass('faved_y')) {
+            $('#ld_entries_v2_all').find('.save_faves_star').trigger('click');
+        }
+
+        /*
+         * Vi expansions
+         */
+        $('.vi_more a').on('click', function(e){e.preventDefault();e.stopPropagation();
+            var a = $(this);
+            var viMore = a.parent();
+            var ul = viMore.prev();
+            if (ul.hasClass('collapsed')) {
+                ul.removeClass('collapsed').addClass('noncollapsed');
+                viMore.addClass('opened');
+            } else {
+                ul.addClass('collapsed').removeClass('noncollapsed');
+                viMore.removeClass('opened');
+            }
+        });
+
+        /*
+         * Loading disqus -> for entry pages
+         */
+        var disqus_shortname = 'learnersdictionary';
+        var disqus_identifier = disqusEntryId;
+        (function() {
+            var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+            dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+            (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+        })();
+    };
+    
+    return module;
+});

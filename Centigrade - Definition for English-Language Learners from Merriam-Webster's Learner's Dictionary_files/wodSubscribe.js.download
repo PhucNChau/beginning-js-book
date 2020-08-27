@@ -1,0 +1,116 @@
+define('wodSubscribe', ['jquery'], function($) {
+    'use strict';
+
+    var module = {};
+
+    var isMobile = window.matchMedia("(max-width: 767px)").matches;
+    var tyMsg = 'Thank you for subscribing!' ;
+
+    var validateEmail = function(email) {
+        var re = /^(([^<>()\[\]\\.,;:\s@"]+(\.[^<>()\[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
+        return re.test(String(email).toLowerCase());
+    }
+
+    var getMedium = function() {
+        var url = location.pathname;
+        if (url === '/') {
+            return (isMobile) ? 'hp-mobile':'hp-desk';
+        } else if (url.indexOf('/word-of-the-day') === 0) {
+            return (isMobile) ? 'lwotd-mobile':'lwotd-desk';
+        } else {
+            return (isMobile) ? 'other-mobile':'other-desk';
+        }
+    }
+
+    var getCountryCode = function(defer) {
+        $.get('/geo-data', 
+            function(json) {
+                if (json["iso-code"]) {
+                    defer.resolve(json["iso-code"]);
+                } else {
+                    defer.resolve('US');
+                }
+            }
+        )
+    }
+
+    var sendData = function(formData,callback) {
+        $.ajax({
+            type: 'post',
+            url: '/lapi/1/ld_wod/subscribe',
+            data: formData
+        })
+        .done(function(response) {
+            var message = (typeof(response['message']) !== "undefined") ? response['message']:'subscribe.error';
+
+            if (typeof(callback) === "function") {
+                callback(message);
+            } else {
+                //default callback
+                window.location = '/lwod-signup-message?message=' + message;
+            }
+        });
+    }
+
+    var subscribeEmail = function(data,callback) {
+        var deferCC = $.Deferred();
+
+        data.newsletter = data.newsletter || 'MW_LEARNER_WORD_OF_THE_DAY';
+        data.source = data.source || 'ldsite';
+        data.campaign = data.campaign || 'lwotd';
+        data.medium = data.medium || getMedium();
+
+        deferCC.then(function(cc) {
+            data.countryCode = cc;
+            sendData(data,callback);
+        });
+
+        getCountryCode(deferCC);
+    }
+
+    module.init = function() {
+        // Subscribe to LWOD daily email
+        $('#subscribe_form, #wod_subscribe_form').on('submit', function(e){e.preventDefault();
+            var form = $(this);
+            var submitButton = form.find('[type=submit]');
+            var email = form.find('[type=text]').val();
+            var sbtnText = submitButton.val();
+
+            if (validateEmail(email) === false) {
+                alert("Please enter a valid Email address.");
+                return;
+            }
+
+            /*
+             * Prevent double-clicking
+             */
+            if (submitButton.hasClass('busy1')) {
+                return;
+            } else {
+                submitButton.val(submitButton.attr('data-loading1'));
+                submitButton.addClass('busy1');
+            }
+
+            var formData = {
+                email: email
+           }
+
+           var subscribed = function(msg) {
+              if (msg === 'subscribe.added'){
+                  form.html('<p class="subscribed-msg">'+tyMsg+'</p>');
+              } else {
+                  submitButton.removeClass("busy1");
+                  submitButton.val(sbtnText);
+                  alert("Error, please try again.");
+              }
+          }
+
+          subscribeEmail(formData,subscribed);
+
+        }); // End Subscribe to LWOD daily email
+    }
+
+    module.subscribeEmail = subscribeEmail;
+
+    return module;
+});

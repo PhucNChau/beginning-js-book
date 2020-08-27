@@ -1,0 +1,15 @@
+#quizzes_r{margin:0 0 20px 0;padding:0;}
+#quizzes_r .main_content{margin:10px 0 0 0;padding:0;}
+#quizzes_r .main_content .feature_quiz{margin:0;padding:0;}
+#quizzes_r .feature_quiz .quiz_icon{margin:0 9px;padding:0;display:inline-block;vertical-align:top;}
+#quizzes_r .feature_quiz .quiz_icon img{margin:0;padding:0;border:none;width:100%;}
+#quizzes_r .feature_quiz .quiz_content{margin:0;padding:0;display:inline-block;vertical-align:top;width:210px;}
+#quizzes_r .quiz_content .title{margin:0;padding:0 0 5px 0;font-size:14px;font-weight:bold;}
+#quizzes_r .quiz_content .title a{text-decoration:none;color:#ca0403;}
+#quizzes_r .quiz_content .title a:hover{text-decoration:underline;color:#ca0403;}
+#quizzes_r .quiz_content .descr{margin:0 0 5px 0;padding:0;font-size:12px;font-weight:normal;}
+#quizzes_r .quiz_content .descr a{text-decoration:none;color:#000;}
+#quizzes_r .quiz_content .descr a:hover{text-decoration:underline;}
+#quizzes_r .quiz_content .passthru_url{margin:0;padding:0;font-size:12px;color:#1122CC;font-weight:normal;text-decoration:none;font-weight:bold;}
+#quizzes_r .quiz_content .passthru_url a{text-decoration:none;color:#1122CC;}
+#quizzes_r .quiz_content .passthru_url a:hover{text-decoration:underline;color:#1122CC;}

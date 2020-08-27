@@ -1,0 +1,117 @@
+define('ads2Refresher', ['jquery', 'adProcessor', 'matchMedia'], function ($, adProcessor) {
+    
+    var module = {};
+    
+    module.init = function() {
+        // they want to refresh ads after 2 minutes and use different ad tags for that
+        window.mwdata.adRefreshCounter = 0;
+        if (typeof window.mwdata.ads2[0] !== undefined) {
+            
+            var initialReload          = true;
+            var gptTagsAlreadyReplaced = false;
+            var intervalId;
+            var slotsToReload          = [];
+            
+            var resetReloadedTags = function() {
+                // let's reset ads using new tags
+                for (var key in window.mwdata.ads2) {
+                  if (window.mwdata.ads2.hasOwnProperty(key)) {
+                    window.mwdata.ads[key] = window.mwdata.ads2[key];
+                    slotsToReload.push(key);
+                  }
+                }
+                
+                // so let's find all tags we  want to reset
+                adProcessor.cleanUpDfpSlots(slotsToReload);
+            } ;
+            
+            
+            // ok - so the only caveat is -> on very first reload we need to swap openx Tags and
+            //then swap gpt tag
+            var adReloader = function() {
+                // first of all let's check if it's been more than 12 refreshes.
+                //Because stakeholders wanted me to cap them to 12.
+                //We're already counting page refreshes so this should be easy
+                if (window.mwdata.ad_refresh_counter !== undefined) {
+                    if (window.mwdata.ad_refresh_counter > 12) {
+                        clearInterval(intervalId);
+                        return;
+                    }
+                }
+                
+                if (initialReload) {
+                    resetReloadedTags();
+                    refreshGptAds();
+                    initialReload = false;
+                } else {
+                    refreshGptAds();
+                }
+            };
+            
+            var refreshGptAds = function() {
+                
+                // we need to update|set slot REFRESH targeting. Because they wanted to separate
+                //page views from page refreshes in analitics. THey only wanted this to affect definitions
+                //pages for some reason -> even though there are other pages with refreshes on site.
+                if (window.mwdata.ad_refresh_counter === undefined) {
+                    window.mwdata.ad_refresh_counter = 1;
+                } else {
+                    window.mwdata.ad_refresh_counter++;
+                }
+                
+                
+                
+                if (!gptTagsAlreadyReplaced) {
+                    adProcessor.prepareOnlyTheseAdSlots(slotsToReload);
+                    
+                    // let's set REFRESH trgeting value & render
+                    var arrayLength = slotsToReload.length;
+                    for (var i = 0; i < arrayLength; i++) {
+                        var slotName = slotsToReload[i];
+                        adProcessor.setDfpSlotTargeting(slotName, 'REFRESH', window.mwdata.ad_refresh_counter);
+                        adProcessor.renderDfp(slotName);
+                    }
+                    
+                    gptTagsAlreadyReplaced = true;
+                } else {
+                    // let's set REFRESH tergeting value to all slots
+                    var arrayLength = slotsToReload.length;
+                    for (var i = 0; i < arrayLength; i++) {
+                        var slotName = slotsToReload[i];
+                        adProcessor.setDfpSlotTargeting(slotName, 'REFRESH', window.mwdata.ad_refresh_counter);
+                    }
+                    
+                    adProcessor.refreshGptAds(slotsToReload);
+                }
+            };
+            
+            var initAdReloadTimer = function() {
+                if (intervalId === undefined) {
+                    intervalId = setInterval(adReloader, 120000); //every 120 seconds
+                    //intervalId = setInterval(adReloader, 10000); //every 10 seconds   
+                }  
+            };
+    
+            // basically idea here is this: if on page load screen resolution is not a desktop size->
+            //dont trigger anything. But if at some point it get's resized to desktop -> trigger openx + GPT refresh
+            var mediaQuery = window.matchMedia('screen and (max-width: 767px)');
+            var doSomething = function(mq) {
+                if (!mq.matches) {
+                    //console.log('LARGE SCREEN - enabling refresh');
+                    initAdReloadTimer();
+                } else {
+                    //console.log('SMALL SCREEN - disabling refresh');
+                    clearInterval(intervalId);
+                    
+                }
+            }
+            mediaQuery.addListener(doSomething);
+            if (!mediaQuery.matches) {
+                //console.log('LARGE SCREEN - enabling refresh');
+                initAdReloadTimer();
+            }
+        }
+    };
+    
+    return module;
+});

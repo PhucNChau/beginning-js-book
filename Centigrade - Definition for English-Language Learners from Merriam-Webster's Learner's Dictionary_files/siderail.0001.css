@@ -1,0 +1,16 @@
+#qa_siderail{margin:0;padding:0;margin-bottom:15px;}
+
+#qa_siderail > .cont{width:100%;margin-top:10px;}
+#qa_siderail > .cont .qa_content_l{width:87px !important;min-width:87px !important;}
+#qa_siderail > .cont .qa_content_l > a{display:inline-block;}
+#qa_siderail > .cont .qa_content_l > a > img{display:inline-block;width:65px;height:65px;}
+
+#qa_siderail > .cont .qa_content_r{vertical-align: top;}
+#qa_siderail > .cont .qa_content_r > .learn_new{padding-bottom:5px;}
+#qa_siderail > .cont .qa_content_r > .learn_new > a{text-decoration:none;color:#ca0403;font-size:14px;font-weight:bold;}
+
+#qa_siderail > .cont .qa_content_r > .question{margin-bottom: 5px;}
+#qa_siderail > .cont .qa_content_r > .question > a{color:#000;}
+
+#qa_siderail > .cont .qa_content_r > .find_answer{}
+#qa_siderail > .cont .qa_content_r > .find_answer> a{font-weight:bold;}

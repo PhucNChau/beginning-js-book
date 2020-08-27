@@ -1,0 +1,249 @@
+define('main', ['wodSubscribe','jquery', 'dynScript', 'jquery.jqueryui', 'jquery.cookie'], function (wodSubscribe,$, dynScript) {
+    
+    var module = {};
+    
+    module.init = function(focusIn, focusInHome) {
+
+        //=============================================================================
+        // Some ga tracking
+        //=============================================================================
+        $('.offer1').find('a').on('click', function(e) {e.preventDefault();
+            var url = $(this).attr('href');
+            ga('send', 'event', 'Site Promos', 'Top4-Position1', 'Unabridged Promo', {'page': url, 'hitCallback': function () {document.location = url;}});
+        });
+        $('.offer2').find('a').on('click', function(e) {e.preventDefault();
+            var url = $(this).attr('href');
+            ga('send', 'event', 'Site Promos', 'Top4-Position2', 'Spanish Central Promo', {'page': url, 'hitCallback': function () {document.location = url;}});
+        });
+        $('.offer3').find('a').on('click', function(e) {e.preventDefault();
+            var url = $(this).attr('href');
+            ga('send', 'event', 'Site Promos', 'Top4-Position3', 'Mobile Apps Promo', {'page': url, 'hitCallback': function () {document.location = url;}});
+        });
+        $('.offer4').find('a').on('click', function(e) {e.preventDefault();
+            var url = $(this).attr('href');
+            ga('send', 'event', 'Site Promos', 'Top4-Position4', 'Visual Dictionary Promo', {'page': url, 'hitCallback': function () {document.location = url;}});
+        });
+        $('.offer5').find('a').on('click', function(e) {e.preventDefault();
+            var url = $(this).attr('href');
+            ga('send', 'event', 'Site Promos', 'Bottom3-Position1', 'Twitter/Facebook Promo', {'page': url, 'hitCallback': function () {document.location = url;}});
+        });
+        $('.offer6').find('a').on('click', function(e) {e.preventDefault();
+            var url = $(this).attr('href');
+            ga('send', 'event', 'Site Promos', 'Bottom3-Position2', 'Bookstore Promo', {'page': url, 'hitCallback': function () {document.location = url;}});
+        });
+        $('.offer7').find('a').on('click', function(e) {e.preventDefault();
+            var url = $(this).attr('href');
+            ga('send', 'event', 'Site Promos', 'Bottom3-Position3', 'Other Dictionaries Promo', {'page': url, 'hitCallback': function () {document.location = url;}});
+        });
+
+
+        /*
+         * Universal pron playback
+         */
+        $('.play_pron').on('click', function(e){e.preventDefault();
+            var lang = $(this).attr('data-lang');
+            var dir  = $(this).attr('data-dir');
+            var file = $(this).attr('data-file');
+            var word = $(this).attr('data-word');
+            var pron = $(this).attr('data-pron') ? $(this).attr('data-pron') : '';
+            var path = lang.replace("_", "/");
+
+            if (window.innerWidth > 767) {
+                var url = "/audio?file=" + encodeURIComponent(file) + '&format=mp3&word=' + encodeURIComponent(word) + '&pron=' + encodeURIComponent(pron);
+                var newwindow = window.open(url, 'Listen', 'toolbar=no,scrollbars=yes,status=no,resizable=yes,menubar=no,height=300,width=780');
+                if (window.focus) {
+                    newwindow.focus();
+                }
+            } else {
+                //Urls for various extensions
+                var fileMp3 = "https://media.merriam-webster.com/audio/prons/" + path + '/' + 'mp3' + '/' + dir + '/' + file + '.mp3';
+                var fileOgg = "https://media.merriam-webster.com/audio/prons/" + path + '/' + 'ogg' + '/' + dir + '/' + file + '.ogg';
+                var fileWav = "https://media.merriam-webster.com/audio/prons/" + path + '/' + 'wav' + '/' + dir + '/' + file + '.wav';
+
+                // HTML5 audio vs document.location
+                if (Modernizr.audio.mp3) {
+                    var audio = new Audio();
+                    audio.src = fileMp3;
+                    audio.play();
+                } else {
+                    document.location = fileMp3;
+                }
+            }
+        });
+
+        /*
+         * AUTOCOMPLETE: we need 2 versions:mobile and desktop.
+         * Stakeholders insisted that they must be positioned in different DOM places - so here we go :(
+         * another case of: NOT REALLY A RESPONSIVE DESIGN - GUUUUUYYYYYSS!
+         */
+        //globar vars for autocomplete
+        window.autocompleteCache = {};
+        window.autocompletes = [];
+
+        //This action redirects user to a definition
+        var submitSearch = function(textToSubmit, searchHolder) {
+            var textArea = $('[name=ld_search_inp]');
+
+            /*
+             * Don't submit if search contains default text
+             */
+            if ((textToSubmit === textArea.attr('data-placeholder')) || (textToSubmit === '')) {
+                return;
+            } else {
+                window.location = '/definition/' + encodeURIComponent(textToSubmit);
+            }
+        };
+
+        //initialize 2 autocompletes
+        $.each($(".ld_search_inp"), function(i, nativeField) {
+            var inputField = $(nativeField);
+            var searchHolder = inputField.parent().parent();
+            var isMobile = (searchHolder.attr('id') === 'ld_searchc_d') ? false : true;
+            var searchBtn = searchHolder.find('.search_btn');
+
+            /*
+             * Instantiating autocomplete
+             */
+            window.autocompletes[i] = inputField.autocomplete({
+                appendTo: isMobile ? '.autocomplete_holder_m' : '.autocomplete_holder_d',
+                position: {
+                    my: "left top",
+                    at: "left bottom"
+                },
+                minLength: 2,
+                delay: 500,
+                source: function(request, response) {
+                    var term = request.term;
+                    if (term in autocompleteCache) {
+                        var d = (window.innerWidth > 767) ? autocompleteCache[term] : autocompleteCache[term].slice(0, 4);
+                        response(d);
+                    } else {
+                        $.getJSON( "/ac", request, function(data, status, xhr) {
+                            autocompleteCache[term] = data;
+                            var d = (window.innerWidth > 767) ? data : data.slice(0, 4);
+
+                            response(d);
+                        });
+                    }
+                },
+                select: function(e, ui) {
+                    window.location = '/definition/' + encodeURIComponent(ui.item.value);
+                    return false;
+                },
+                focus: function(e, ui) {
+                    //HACK: because I have to to implement responsive design in a wrong way.
+                    //so we need to sync data between inputs
+                    $('#ld_searchc_d').find('.ld_search_inp').val(ui.item.label).removeClass('ld_pholder');
+                    $('#ld_searchc_m').find('.ld_search_inp').val(ui.item.label).removeClass('ld_pholder');
+
+                    return false;
+                }
+            });
+
+            //user click on submit button
+            searchBtn.on('click', function(e) {e.preventDefault();e.stopPropagation();
+                submitSearch(inputField.val(), searchHolder);
+            });
+
+            //user presses enter
+            inputField.on('keydown', function(e) {
+                if (e.keyCode == 13) {
+                    e.stopPropagation();e.preventDefault();
+                    submitSearch(inputField.val(), searchHolder);
+                }
+            });
+
+            //user presses other carachters
+            inputField.on('keyup', function(e) {
+                if (e.keyCode !== 13) {
+                    //HACK: because I have to to implement responsive design in a worng way.
+                    //so we need to sync data between inputs
+                    if (isMobile) {
+                        $('#ld_searchc_d').find('.ld_search_inp').val(inputField.val());
+                    } else {
+                        $('#ld_searchc_m').find('.ld_search_inp').val(inputField.val());
+                    }
+                    console.log('keyup');
+
+                    //depending on if input is empty -> hide or show a clear button
+                    if ((inputField.val() !== '') && (inputField.val() !== inputField.attr('data-placeholder'))) {
+                        $('#ld_searchc_m').find('.clear_btn').show();
+                    } else {
+                        $('#ld_searchc_m').find('.clear_btn').hide();
+                    }
+                }
+            });
+
+            //cross-browser placeholder
+            inputField.focus(function() {
+                if (inputField.val() == inputField.attr('data-placeholder')) {
+                    //HACK: because I have to to implement responsive design in a wrong way.
+                    //so we need to sync data between inputs
+                    $('#ld_searchc_d').find('.ld_search_inp').val('').removeClass('ld_pholder');
+                    $('#ld_searchc_m').find('.ld_search_inp').val('').removeClass('ld_pholder');
+                }
+            }).blur(function() {
+                if ((inputField.val() == '') || (inputField.val() == inputField.attr('data-placeholder'))) {
+                    //HACK: because have to implement responsive design in a wrong way.
+                    //so we need to sync data between inputs
+                    $('#ld_searchc_d').find('.ld_search_inp').val($('#ld_searchc_d').find('.ld_search_inp').attr('data-placeholder')).addClass('ld_pholder');
+                    $('#ld_searchc_m').find('.ld_search_inp').val($('#ld_searchc_m').find('.ld_search_inp').attr('data-placeholder')).addClass('ld_pholder');
+                }
+            });
+            if (focusIn || focusInHome) {
+                inputField.trigger('focus').trigger('blur');
+            }
+        });
+
+        $('.m_menu_btn').on('click', function(e) {e.preventDefault();
+            if ($('.ld_searchc_m_plusb').hasClass('open')) {
+                $('.ld_searchc_m_plusb').removeClass('open');
+            } else {
+                $('.ld_searchc_m_plusb').addClass('open');
+            }
+        });
+
+        /*
+         * Focus on desktop
+         */
+        if (window.innerWidth > 767) {
+            if (focusIn) {
+                $('#ld_searchc_d').find('[name=ld_search_inp]').trigger('focus');
+            } else if (focusInHome) {
+                $('#ld_searchc_d').find('[name=ld_search_inp]').trigger('focus');
+            }
+        }
+
+        /*
+         * In mobile view -> scroll form input to the top on focus
+         */
+        $('#ld_searchc_m').find('[name=ld_search_inp]').on('focus', function() {
+            var anchor = $(this);
+            $('html, body').stop().animate({
+                scrollTop: anchor.offset().top - 8
+            }, 800, 'easeInOutExpo');
+        });
+
+        //Show or hide clear button -> initial
+        if (($('#ld_searchc_m').find('[name=ld_search_inp]').val() !== '') && ($('#ld_searchc_m').find('[name=ld_search_inp]').val() !== $('#ld_searchc_m').find('[name=ld_search_inp]').attr('data-placeholder'))) {
+            $('#ld_searchc_m').find('.clear_btn').show();
+        } else {
+            $('#ld_searchc_m').find('.clear_btn').hide();
+        }
+
+        /*
+         * This is what happens when user clicks on clear button
+         */
+        $('#ld_searchc_m').find('.clear_btn').on('click', function(e){e.stopPropagation();
+            $(".ld_search_inp").val('');
+            $('#ld_searchc_m').find('[name=ld_search_inp]').trigger('focus');
+            $('#ld_searchc_m').find('.clear_btn').hide();
+        });
+
+        //Word of the Day 
+        wodSubscribe.init();
+
+    };
+    
+    return module;
+});

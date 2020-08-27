@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Chapter 5: Example 3</title>
+        <meta charset="utf-8">        
+    </head>
+    <body>
+        <script type="text/javascript">
+            var shoppingList = new Array("Egg","Milk","Potatoes","Cereal","Banana");
+            var orderNo = prompt("Enter 1 for alphabetical order, and -1 for reverse order", 1);
+            if (orderNo == 1)
+            {
+                shoppingList.sort();
+                document.write(shoppingList.join("<br />"));                
+            }
+            else if (orderNo == -1)
+            {
+                shoppingList.sort().reverse();
+                document.write(shoppingList.join("<br />"));
+            }
+            else
+            {
+                document.write("That is not a valid input");
+            }
+        </script>
+    </body>
+</html>
