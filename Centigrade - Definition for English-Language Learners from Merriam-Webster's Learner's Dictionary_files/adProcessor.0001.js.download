@@ -1,0 +1,501 @@
+define('adProcessor', ['jquery', 'uniqueId'], function($, uniqueId) {
+    //"use strict";
+    
+        
+  var module = {};
+
+    /********************************************************************************
+     * UTILITIES
+     ********************************************************************************/
+    // if (!Array.prototype.indexOf) {
+    //     Array.prototype.indexOf = function(needle) {
+    //         for(var i = 0; i < this.length; i++) {
+    //             if(this[i] === needle) {
+    //                 return i;
+    //             }
+    //         }
+    //         return -1;
+    //     };
+    // }
+        
+    // the way google ads lib calculates screen width differs from CSS breakpoint pixels
+    //It's not taking slider into account (it's width also differs from platform to platform)
+    var viewportDiff = function() {
+        var e = window;
+        var a = 'inner';
+        if (!( 'innerWidth' in window)) {
+            a = 'client';
+            e = document.documentElement || document.body;
+        }
+        var cssWidth = e[a+'Width'];
+        var jsWidth  = $(window).width();
+        var diff     = cssWidth - jsWidth;
+        diff = (diff < 0) ? 0 : diff;
+        
+        return diff;
+    };
+    
+    /********************************************************************************
+     * SLOTS PREPARATION CODE
+     ********************************************************************************/
+    
+    // I'll be keeping it as a "private API"
+    var prepareAdSlots = function(allowedIds) {
+        
+        // in case if google tag wasn't yet initialized - let's initialize it
+        if (!window.mwdata.gTagReady) {
+            var that = this;
+            that.prepareAdLibraries();
+        }
+        
+        // get ads and filter to allowed list
+        var ads = [];
+        var allowedLength = allowedIds.length;
+        for (var i = 0; i < allowedLength; i++) {
+            var asn  = allowedIds[i];
+            
+            // now we don't need to prep such slot if it was already prepped
+            if (window.mwdata.tagsPrepped.indexOf(asn) !== -1) {
+                continue;
+            }
+            
+
+            ads[asn] = window.mwdata.ads[asn];
+            window.mwdata.tagsPrepped.push(asn);
+        }
+        
+        // we need to make sure these exist
+        if (window.gptadslots === undefined) {
+            window.gptadslots = {};
+        }
+        if (window.quantSegs === undefined) {
+            window.quantSegs  = [];
+        }
+    
+        // we only need to do something if there are actually slots on the page
+        if (!$.isEmptyObject(ads)) {
+            
+            // Determine what types of ad-networks are present. (technically we only use DFP though)
+            // Determine if targeting includes quantcastdifferentJavaScript
+            var googleDfpAdsPresent = false;
+            var quantcastRequired   = false;
+            for (var slotName in ads) {
+                if (ads.hasOwnProperty(slotName)) {
+                    var adEntry = ads[slotName];
+                    if (adEntry.type === 'google_dfp') {
+                        googleDfpAdsPresent = true;
+                        
+                        // we should also add some unique div ids
+                        var uid         = uniqueId.getUniqueId();
+                        adEntry.data.id =  'gpt-id-' + uid;
+                    }
+                    if (typeof adEntry.data.targeting !== 'undefined') {
+                        for (var i = 0; i < adEntry.data.targeting.length; i++) {
+                            var currentTarget = adEntry.data.targeting[i];
+                            if ((currentTarget[0] === 'qsegs')) {
+                                quantcastRequired = true;
+                            }
+                        }
+                    }
+                }
+            }
+            
+            
+            
+            
+            var prepDfpSlots = function(result) {
+                
+                googletag.cmd.push(function() {
+                    
+                    
+                    for (var slotName in ads) {
+                        
+                        
+                        var adEntry = ads[slotName];
+
+                        if (adEntry.type === 'google_dfp') {
+                            
+                            // Creating a slot. Since it seems like default sizes are mandatory
+                            //for slot creation (even if u intend to just use responsive mappings)
+                            //so we gotta make sure we got those enabled in a config
+                            gptadslots[slotName] = googletag.defineSlot(adEntry.data.slot, adEntry.data.defSizes, adEntry.data.id).setTargeting('ad_group', Adomik.randomAdGroup());
+                                
+                            // Defining targeting if any
+                            if (typeof adEntry.data.targeting !== 'undefined') {
+                                for (var i = 0; i < adEntry.data.targeting.length; i++) {
+                                    var currentTarget = adEntry.data.targeting[i];
+                                    
+                                    var targetingType = currentTarget[0];
+                                    var targetingValue = (targetingType === 'qsegs') ? result : currentTarget[1];
+                                    
+                                    if ((targetingValue !== null) && (targetingValue !== '')) {
+                                        gptadslots[slotName].setTargeting(targetingType, targetingValue);
+                                    }
+                                }
+                            }
+                            
+                            
+                            // Let's add responsive logic if needed
+                            if (!$.isEmptyObject(adEntry.data.sizeMappings)) {
+                                // Adding responsive mappings to a slot
+                                var mapping = googletag.sizeMapping();
+                                for (var key in adEntry.data.sizeMappings) {
+                                    if (adEntry.data.sizeMappings.hasOwnProperty(key)) {
+                                        
+                                        var sizeData = adEntry.data.sizeMappings[key];
+                                        var browserSize = sizeData.screen;
+                                        var adSizes = sizeData.ads;
+                                        
+                                        // now there is a tricky part. google just uses
+                                        //window.width. However that dimension doesn't correspond to a full view-port
+                                        //size that CSS uses!!! So our breakpoints will be 15-20px off - which means ads
+                                        //will be converting prematurely! So we need to detect that difference and recalculate
+                                        //browser sizes given in ad config (which just assumes css pixels)
+                                        var diff = viewportDiff();
+                                        
+                                        // let's prep browser sizes
+                                        var bw = parseInt(browserSize[0]);
+                                        bw = (bw < diff) ? bw : (bw - diff);
+                                        var bh = parseInt(browserSize[1]);
+                                        browserSize = [bw, bh];
+                                        
+                                        // ok all set - > let's add this size to our mapping data
+                                        mapping.addSize(browserSize, adSizes);
+                                    }
+                                }
+                                
+                                // at this point we've defined mappings -> so let's build them and attach to a tag
+                                var mappingBuildResult = mapping.build();
+                                gptadslots[slotName].defineSizeMapping(mappingBuildResult);
+                            }
+                            
+                            //adding service
+                            gptadslots[slotName].addService(googletag.pubads());
+                        }
+                    }
+                    
+                    if (!window.mwdata.dfpSvcUp) {
+                        // we can mark dfp service as "UP" -> even if we load things
+                        //in async way - doens't matter
+                        window.mwdata.dfpSvcUp = true;
+                        
+                        var launchGoogleTags = function() {
+                            googletag.pubads().enableAsyncRendering();
+                            googletag.pubads().enableSingleRequest();
+                            if (window.deployads_srt) {
+                              deployads.push(function() {
+                                deployads.gpt.enableServices();
+                              });
+                            } else {
+                              googletag.enableServices();
+                            }
+                        };
+                        launchGoogleTags();
+                    }
+                });
+            };
+    
+            
+            //Load google DFP ads if they're present
+            if (googleDfpAdsPresent) {
+                if (quantcastRequired) {
+                    function qc_results(result) {
+                        quantSegs = [];
+                        for (var i = 0; i < result.segments.length; i++) {
+                            quantSegs.push(result.segments[i].id);
+                        }
+                        prepDfpSlots(quantSegs);
+                    }
+                } else {
+                    prepDfpSlots(null);
+                }
+            }
+        }
+    };
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    /********************************************************************************
+     * PUBLIC API
+     ********************************************************************************/
+    module.prepareAdLibraries = function() {
+        //WW: init Admik Variable;
+        window.Adomik = window.Adomik || {};
+        Adomik.randomAdGroup = function() {
+            var rand = Math.random();
+            switch (false) {
+                case !(rand < 0.09): return "ad_ex" + (Math.floor(100 * rand));
+                case !(rand < 0.10): return "ad_bc";
+                default: return "ad_opt";
+            }
+        };
+                
+        // Making sure we're not executing this twice
+        if (window.mwdata.gTagReady) {
+            return;
+        }
+        
+        // allowing async commands
+        window.googletag     = window.googletag || {};
+        window.googletag.cmd = window.googletag.cmd || [];
+        
+        // mark googletag as ready. Technically google tag library might not yet loaded (because
+        //it's asynchronous) - but we really don't care as we only using window.googletag global variable
+        //we've just defined for all intended purposes.
+        window.mwdata.gTagReady = true;
+
+      if (window.deployads_srt) {
+        // Initialize the deployads array, for asynchronous use
+        window.deployads = window.deployads || [];
+      }
+
+        // // prior to loading google tags -> we should load some other partner libs.
+        // //It's best of course to try & load them all at once and reduce latency chaining
+        // var promises = [];
+        // var openxPromise = $.ajax({
+        //     url: '//merriamwebster-d.openx.net/w/1.0/jstag?nc=15510053-LearnersDictionary',
+        //     cache : true,
+        //     dataType: "script",
+        //     timeout: 600
+        // });
+        // promises.push(openxPromise);
+        
+        // //HEADERTAG -> disabled on learners
+        // /* 
+        // var bidderPromise = $.ajax({
+        //     url: 'http://js.indexww.com/ht/htw-merriam-webster.js',
+        //     cache : true,
+        //     dataType: "script",
+        //     timeout: 600
+        // });
+        // promises.push(bidderPromise);
+        // */
+    
+        // // When all of those deps get resolved -> we're free to load gpt.
+        // // I use 'always' -> because we should always try to serve ads, regardless
+        // //if partners loaded or failed
+        // $.when.apply($, promises).always(function() {
+        //     $.ajax({
+        //         url: '//www.googletagservices.com/tag/js/gpt.js',
+        //         cache : true,
+        //         dataType: "script",
+        //         timeout: 1000
+        //     });
+            
+        //     //HEADERTAG -> disabled on learners
+        //     // [googletag] this is a fallback for Google Publisher Tag
+        //     googletag.cmd.push(function() {
+        //         if (typeof window.headertag === 'undefined' || window.googletag.apiReady !== true) {
+        //             console.log('headertag is not defined, falling back to googletag');
+        //             window.headertag = googletag;
+        //         } 
+        //     });
+        // });
+    };
+
+    
+    // black list
+    module.prepareAllAdSlotsExcept = function(exceptionSlots) {
+        var slotNames = $.map(window.mwdata.ads, function(element, index) {return index;});
+        
+        var forPrep = [];
+        for (var i = 0; i < slotNames.length; i++) {
+            var slotName  = slotNames[i];
+            if (exceptionSlots.indexOf(slotName) === -1) {
+                forPrep.push(slotName);
+            }
+        }
+        
+        prepareAdSlots(forPrep);
+    };
+    
+    // white list
+    module.prepareOnlyTheseAdSlots = function(forPrep) {
+        prepareAdSlots(forPrep);
+    };
+    
+    
+    // replacing ad-slots. Basically this is needed for cases when we want to trigger ad-refresh,
+    //but prefer using different slotnames
+    module.cleanUpDfpSlots = function(slotsToReload) {
+        
+        // basically the only difference would be a slot-name. However - google
+        //has no option for updating a slotname - so we have to destroy => then recreate.
+        
+        //  Replace the current correlator with a new correlator.
+        //according to google this starts a new pageview.
+        googletag.pubads().updateCorrelator();
+        
+        // we also need to nuke internal tracking that tracks prepped tags & nuke that tag from gptadslots
+        var arrayLength1 = slotsToReload.length;
+        for (var i1 = 0; i1 < arrayLength1; i1++) {
+            var reloadSlotName = slotsToReload[i1];
+            
+            // so let's iterate over prepped tags and nuke the ones we are replacing
+            var arrayLength2 = window.mwdata.tagsPrepped.length;
+            for (var i2 = 0; i2 < arrayLength2; i2++) {
+                var preppedSlotName = window.mwdata.tagsPrepped[i2];
+                if (reloadSlotName === preppedSlotName) {
+                    window.mwdata.tagsPrepped.splice(i2, 1);
+                }
+            }
+            
+            // nuke slot
+            if (gptadslots[reloadSlotName] !== undefined) {
+              if (window.deployads_srt) {
+                deployads.push(function() {
+                  deployads.gpt.destroySlots([gptadslots[reloadSlotName]]);
+                });
+              } else {
+                googletag.destroySlots([gptadslots[reloadSlotName]]);
+              }              
+            }
+        }
+    };
+    
+    
+    // functionality that allows us to refresh ads
+    //served via google dfp technology (which happens to
+    //be the only ads we serve). We use it currently in places
+    //like galleries for refreshing ads between slides.
+    module.refreshGptAds = function(slotsToRefresh) {
+        if (window.googletag && googletag.apiReady) {
+            
+            // refresh all tags
+            if (slotsToRefresh === undefined) {
+              if (window.deployads_srt) {
+                deployads.push(function() {
+                  deployads.gpt.pubadsRefresh();
+                });
+              } else {
+                googletag.pubads().refresh();
+              }
+            // or refresh just some of them
+            } else {
+                var arrayLength = slotsToRefresh.length;
+                for (var i = 0; i < arrayLength; i++) {
+                    var refreshSlotName = slotsToRefresh[i];
+                    if (window.deployads_srt) {
+                      deployads.push(function() {
+                        deployads.gpt.pubadsRefresh([gptadslots[refreshSlotName]]);
+                      });
+                    } else {
+                      googletag.pubads().refresh([gptadslots[refreshSlotName]]);
+                    }
+                }
+            }
+        }
+    };
+    
+    
+    // Index requested that we update corellator between quiz question pages
+    module.updateCorrelator = function() {
+        if (window.googletag && googletag.apiReady) {
+            googletag.pubads().updateCorrelator();
+        }
+    };
+    
+    
+    module.setDfpSlotTargeting = function(slotName, targetingName, targetingValue) {
+        gptadslots[slotName].setTargeting(targetingName,  targetingValue);
+    };
+    
+    module.renderDfp = function(slotId, parentSelector) {
+        
+        //Always check if library was initialized
+        if (!window.mwdata.gTagReady) {
+            var that = this;
+            that.prepareAdLibraries();
+        }
+        
+        //It doesn't hurt to cehck if slots werent prepped. If so -> prep them.
+        prepareAdSlots([slotId]);
+        
+        // Let's fetch whatever AD is requested for display
+        var adData = window.mwdata.ads[slotId];
+        
+        // now the idea here is this. If parentSelector is undefined -> we should look
+        //for a JS script tag named just like a slotId
+        var parentDiv   = (parentSelector === undefined) ? ('.' + slotId) : parentSelector;
+        var parentDivEl = $(parentDiv);
+        if (parentDivEl.length == 0) {
+            return;
+        }
+        
+        // which div id
+        var adDiv = $('<div></div>');
+        adDiv.attr('id', adData.data.id);
+        adDiv.prependTo(parentDivEl);
+        
+        // in some rare cases we need to mark that slot div with a special class
+        //This is used for example when u need to serve yahoo gemini ads via DFP
+        if (adData.data.divClass !== undefined) {
+            adDiv.addClass(adData.data.divClass);
+        }
+        
+
+        // special case related to PF. Basically PF wants us to implement
+        //this functionality: check if such ad is displayable in this resolution and
+        //if so -> mark it as restorable (by using special argument)
+        var isAdPresentInThisScreenWidth = false;
+        var viewportWidth  = $(window).width();
+        var mappingsLength = adData.data.sizeMappings.length;
+        var chosenWidth;
+        for (var i = 0; i < mappingsLength; i++) {
+            var mapping = adData.data.sizeMappings[i];
+            var screenWidth = mapping.screen[0];
+            var adsPresent  = (mapping.ads.length !== 0);
+            if (viewportWidth >= screenWidth) {
+                chosenWidth = screenWidth;
+                isAdPresentInThisScreenWidth = adsPresent;
+            }
+        }
+        if (isAdPresentInThisScreenWidth && !adData.data.noPf) {
+            adDiv.attr('adonis-marker', '');
+        }
+
+        
+        
+        // this what should happen;
+        googletag.cmd.push(function() {
+            
+            // yeah as weird as it is - actual div is required
+          if (window.deployads_srt) {
+            deployads.push(function() {
+              deployads.gpt.display(adData.data.id);
+            });
+          } else {
+            googletag.display(adData.data.id);
+          }            
+
+          parentDivEl.addClass('ad-displayed');
+            
+            // now - there is also a possibility that ad tags would need to be refreshed once in a while
+            if (adData.data.refresh !== undefined) {
+              var rfn = function() {
+              if (window.deployads_srt) { 
+                  deployads.push(function() {
+                    deployads.gpt.pubadsRefresh([window.gptadslots[slotId]]);
+                  });                    
+                } else {
+                  googletag.pubads().refresh([window.gptadslots[slotId]]);
+                }
+              }
+              setInterval(rfn, adData.data.refresh * 1000);
+            }
+        });
+    };
+    
+    return module;
+});

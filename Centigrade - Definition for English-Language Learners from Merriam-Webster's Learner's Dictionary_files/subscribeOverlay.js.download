@@ -1,0 +1,252 @@
+define('subscribeOverlay', ['wodSubscribe','jquery','matchMedia'], function(wodSubscribe,$,matchMedia) {
+    
+    'use strict';
+
+    var module = {};   
+    var mqMax768 = window.matchMedia('screen and (max-width: 768px)');
+    var container;
+
+    function ouibounce(el, custom_config) {
+      "use strict";
+      var config     = custom_config || {},
+        aggressive   = config.aggressive || false,
+        sensitivity  = setDefault(config.sensitivity, 20),
+        timer        = setDefault(config.timer, 1000),
+        delay        = setDefault(config.delay, 0),
+        callback     = config.callback || function() {},
+        cookieExpire = setDefaultCookieExpire(config.cookieExpire) || '',
+        cookieDomain = config.cookieDomain ? ';domain=' + config.cookieDomain : '',
+        cookieName   = config.cookieName ? config.cookieName : 'viewedOuibounceModal',
+        sitewide     = config.sitewide === true ? ';path=/' : '',
+        _delayTimer  = null,
+        _html        = document.documentElement;
+
+      function setDefault(_property, _default) {
+        return typeof _property === 'undefined' ? _default : _property;
+      }
+
+      function setDefaultCookieExpire(days) {
+        // transform days to milliseconds
+        var ms = days*24*60*60*1000;
+
+        var date = new Date();
+        date.setTime(date.getTime() + ms);
+
+        return "; expires=" + date.toUTCString();
+      }
+
+      setTimeout(attachOuiBounce, timer);
+      function attachOuiBounce() {
+        if (isDisabled()) { return; }
+
+        _html.addEventListener('mouseleave', handleMouseleave);
+        _html.addEventListener('mouseenter', handleMouseenter);
+        _html.addEventListener('keydown', handleKeydown);
+      }
+
+      function handleMouseleave(e) {
+        if (e.clientY > sensitivity) { return; }
+
+        _delayTimer = setTimeout(fire, delay);
+      }
+
+      function handleMouseenter() {
+        if (_delayTimer) {
+          clearTimeout(_delayTimer);
+          _delayTimer = null;
+        }
+      }
+
+      var disableKeydown = false;
+      function handleKeydown(e) {
+        if (disableKeydown) { return; }
+        else if(!e.metaKey || e.keyCode !== 76) { return; }
+
+        disableKeydown = true;
+        _delayTimer = setTimeout(fire, delay);
+      }
+
+      function checkCookieValue(cookieName, value) {
+        return parseCookies()[cookieName] === value;
+      }
+
+      function parseCookies() {
+        // cookies are separated by '; '
+        var cookies = document.cookie.split('; ');
+
+        var ret = {};
+        for (var i = cookies.length - 1; i >= 0; i--) {
+          var el = cookies[i].split('=');
+          ret[el[0]] = el[1];
+        }
+        return ret;
+      }
+
+      function isDisabled() {
+        return checkCookieValue(cookieName, 'true') && !aggressive;
+      }
+
+      function isWODSubscriber() {
+        return checkCookieValue('b-e-subsc', '1') && !aggressive;
+      }
+
+      // You can use ouibounce without passing an element
+      // https://github.com/carlsednaoui/ouibounce/issues/30
+      function fire() {
+        if (isDisabled() || isWODSubscriber()) { return; }
+
+        if (el) { el.style.display = 'block'; }
+
+        callback();
+        disable();
+      }
+
+      function disable(custom_options) {
+        var options = custom_options || {};
+
+        // you can pass a specific cookie expiration when using the OuiBounce API
+        // ex: _ouiBounce.disable({ cookieExpire: 5 });
+        if (typeof options.cookieExpire !== 'undefined') {
+          cookieExpire = setDefaultCookieExpire(options.cookieExpire);
+        }
+
+        // you can pass use sitewide cookies too
+        // ex: _ouiBounce.disable({ cookieExpire: 5, sitewide: true });
+        if (options.sitewide === true) {
+          sitewide = ';path=/';
+        }
+
+        // you can pass a domain string when the cookie should be read subdomain-wise
+        // ex: _ouiBounce.disable({ cookieDomain: '.example.com' });
+        if (typeof options.cookieDomain !== 'undefined') {
+          cookieDomain = ';domain=' + options.cookieDomain;
+        }
+
+        if (typeof options.cookieName !== 'undefined') {
+          cookieName = options.cookieName;
+        }
+   
+        document.cookie = cookieName + '=true' + cookieExpire + cookieDomain + sitewide;
+
+        // Listen for subscribe/click event
+       container.on("noThanksSubscribe",function() {     
+          document.cookie = cookieName + '=true' + setDefaultCookieExpire(7) + cookieDomain + sitewide;
+       });
+
+
+        // remove listeners
+        _html.removeEventListener('mouseleave', handleMouseleave);
+        _html.removeEventListener('mouseenter', handleMouseenter);
+        _html.removeEventListener('keydown', handleKeydown);
+      }
+
+      return {
+        fire: fire,
+        disable: disable,
+        isDisabled: isDisabled
+      };
+    }
+
+
+    var initOverlay= function() {
+    container = $("#subscribe-overlay");
+
+    var addedHTML = '<div class="success-message subscribe-added"><p>Thank you for subscribing!</p></div> ';
+
+    var resentConfirmationTML = '<div class="success-message resent-confirmation-message">';
+        resentConfirmationTML += '<p><b>Looks like you&#700;ve tried to subscribe already.</b></p>';
+        resentConfirmationTML += '<p>Hmm, our records show that you tried to subscribe to the Word of the Day once before, but did not confirm your subscription. ';
+        resentConfirmationTML += 'We ask you to click on a link in an email to be sure you&#700;re really you — so we&#700;ve resent that confirmation email now. ';
+        resentConfirmationTML += 'It could be that your spam filter is blocking the confirmation message. Please add &#8220;mwld-support@m-w.com&#8221; to your address book or whitelist to ensure delivery of the Word the day, and the confirmation message — and start learning something new every day!</p>';
+        resentConfirmationTML += '<p>Thanks,<br/>The Merriam-Webster Team</p></div>';
+
+    var subscribedTML = '<div class="success-message already-subscribed-message">';
+        subscribedTML += '<p><b>You&#700;re already subscribed!</b></p>';
+        subscribedTML += '<p>If you are not getting our emails, it could be that your spam filter is blocking the Word of the Day email.</p>';
+        subscribedTML += '<p>If you have not done so already, please add &#8220;mwld-support@m-w.com&#8221; to your address book or whitelist to ensure delivery of the Word the Day — and start learning something new every day!</p>';
+        subscribedTML += '<p>Thanks,<br/>The Merriam-Webster Team</p></div>';
+
+    var subscribeOverlayHTML = '<div class="underlay"></div><div class="subscribe-modal"><a class="overlay-close"><span aria-label="Close Overlay">×</span></a>';
+        subscribeOverlayHTML += '<div class="overlay-box"><div class="overlay-left"><div class="overlay-image-spacing"><div class="overlay-image">';
+        subscribeOverlayHTML += '</div></div></div><div class="overlay-right"><div class="overlay-form"><div class="overlay-subscribe">';
+        subscribeOverlayHTML += '<p>Learn a new word every day.</p><p>Sign up for our <b>Learner&#700;s Word of the Day</b><br/>daily newsletter!</p>';
+        subscribeOverlayHTML += '<form class="subscribe-box"><input type="text" name="subscribe-email" class="subcribe-email" id="subscribe-email" placeholder="Your email address"/><input type="submit" class="btn subscribe-btn" id="overlay-subscribe-btn" value="subscribe" />';
+        subscribeOverlayHTML += '</form><div class="overlay-close-link">No thanks, maybe later.</div></div></div> </div></div></div>';
+
+      container.html(subscribeOverlayHTML);
+
+      var hideOverlay = function() {
+        window.disableRecircBar = false;
+        container.hide();
+      }
+      $('body').on('click', function(e) {
+        hideOverlay();
+      });
+      // prevent from propagate to body to close
+      container.find(".subscribe-modal").on('click', function(e) {
+        e.stopPropagation();
+      });
+
+      container.find(".overlay-close").on("click", function(e) {
+        e.preventDefault();
+        hideOverlay();        
+      });
+
+      // Set cookie for 7 days;
+      container.find(".overlay-close-link").on("click", function(e) {
+        e.preventDefault();
+        container.trigger("noThanksSubscribe");
+        hideOverlay();
+      });
+
+      container.on("submit",".subscribe-box", function(e) {
+        e.preventDefault();
+        var submitButton = container.find(".subscribe-btn");
+        var textField    = container.find(".subcribe-email");
+
+        if (submitButton.hasClass('busy1')) {
+          return;
+        } else {
+          submitButton.addClass('busy1');
+        }
+
+        var formData = {
+          email: textField.val(),
+          source: 'scroll-away'
+        }
+
+        var subscribedCallback = function(message) {
+          if (message === 'subscribe.added') {
+            container.find(".overlay-form").addClass("message").html(addedHTML);
+          } else if (message === 'subscribe.invalid_email'){
+            alert("Please enter a valid Email address.");
+          } else {
+            alert("Please try again.");
+          }
+          submitButton.removeClass('busy1');
+        }
+
+        wodSubscribe.subscribeEmail(formData,subscribedCallback);
+
+      });
+
+    }
+    
+    module.init = function() {
+      // only for desktop
+      if (mqMax768.matches || window.location.pathname.indexOf('/definition') !== 0) {
+        return;
+      }
+      if (!!window.disableWODSubscribe === true) { return; }
+      initOverlay();
+      var _ouibounce = ouibounce(document.getElementById('subscribe-overlay'), {
+        timer: 100,
+        cookieName: 'subscribeOverlay',
+        cookieExpire: 7,
+        sitewide: true
+      });
+
+    }
+
+    return module;
+});

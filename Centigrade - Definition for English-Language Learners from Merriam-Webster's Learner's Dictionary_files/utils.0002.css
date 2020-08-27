@@ -1,0 +1,74 @@
+/*space inserts*/
+.block30pxh{height:30px;}
+.block20pxh{height:20px;}
+.block17pxh{height:17px;}
+.block10pxh{height:10px;}
+.block08pxh{height:8px;}
+.block06pxh{height:6px;}
+.block04pxh{height:4px;}
+
+/*common paddings*/
+.padding_top_0{padding-top: 0px;}
+.padding_bottom_0{padding-bottom: 0px;}
+
+/*common margins*/
+.margin_top_0{margin-top:0;}
+.margin_top_1_4_em{margin-top:1.4em;}
+.margin_top_1_3_em{margin-top:1.3em;}
+.margin_top_0_8_em{margin-top:0.8em;}
+.margin_top_20{margin-top:20px;}
+.margin_top_15{margin-top:15px;}
+.margin_top_10{margin-top:10px;}
+.margin_top_5{margin-top:5px;}
+.margin_top_4{margin-top:4px;}
+.margin_bottom_1_4_em{margin-bottom:1.4em;}
+.margin_bottom_1_3_em{margin-bottom:1.3em;}
+.margin_bottom_0_8_em{margin-bottom:0.8em;}
+.margin_bottom_20{margin-bottom:20px;}
+.margin_bottom_15{margin-bottom:15px;}
+.margin_bottom_10{margin-bottom:10px;}
+.margin_bottom_8{margin-bottom:8px;}
+.margin_bottom_5{margin-bottom:5px;}
+
+/*other*/
+.box_sizing{-moz-box-sizing:border-box;-webkit-box-sizing:border-box;box-sizing:border-box;}
+.float_left{float:left;}
+.float_right{float:right;}
+.hidden_elements{display:none;}
+.clear_both{clear:both;}
+.text_left{text-align:left;}
+.text_right{text-align:right;}
+.no_margin{margin:0;}
+.no_padding{padding:0;}
+.bold_font{font-weight: bold;}
+.georgia_font{font-family: Georgia, Arial, Verdana, sans-serif;}
+.georgia_font_s{font-family: Georgia, Arial, Verdana, serif;}
+.arial_font{font-family: arial, verdana, sans-serif;}
+.verdana_font{font-family: Verdana, Arial, Helvetica, sans-serif;}
+.helvetica_font{font-family:helvetica,verdana,arial,sans-serif;}
+.voces_font{font-family:'Voces',Verdana,arial,sans-serif;}
+
+/********************************************************************************
+ * Print utils
+ ********************************************************************************/
+@media print
+{
+.noprint {display:none;}
+}
+
+
+/********************************************************************************
+ * Responsive utils
+ ********************************************************************************/
+@media (min-width: 768px) {
+	.ld_lg_hidden{display:none !important;}
+	.ld_lg_visible{display:block !important;}
+	.ld_lg_visible_ib{display:inline-block !important;}
+	.ld_lg_visible_i{display:inline !important;}
+}
+@media (max-width: 767px) {
+	.ld_xs_hidden{display:none !important;}
+	.ld_xs_visible{display:block !important;}
+	.ld_xs_visible_ib{display:inline-block !important;}
+	.ld_xs_visible_i{display:inline !important;}
+}

@@ -1,0 +1,32 @@
+/*
+	10px = 83.3%
+	11px = 91.6%
+	13px = 109%
+	14px = 117%
+	15px = 125%
+	16px = 133.33%
+	17px = 141.66%
+	18px = 150%
+	20px = 166.66%
+	22px = 183.33%
+	24px = 200%
+	27px = 225%
+	28px = 233.33%
+	30px = 250%
+	32px = 266.66%
+	35px = 291.66%
+	40px = 333.33%
+	42px = 350%
+*/
+body{font-size:12px;font-weight:normal;}
+p {margin:0;padding:0 0 10px 0;font-weight:normal;}
+a{color:#1122CC;text-decoration:none;}
+a:hover{text-decoration:underline;}
+
+/********************************************************************************
+ * mobile overides
+ ********************************************************************************/
+@media (max-width:767px) {
+	body{font-size:20px;}
+	p {padding:0 0 20px 0;}
+}

@@ -1,0 +1,30 @@
+define('dynScript', ['jquery'], function ($) {
+    
+    var module = {};
+    
+    module.load = function(script, attributes, onloadCb) {
+        
+        var fjs = document.getElementsByTagName('script')[0];
+        var js = document.createElement('script');
+        
+        // let's attach attributes
+        if (attributes !== undefined) {
+            for (var key in attributes) {
+                if (attributes.hasOwnProperty(key)) {
+                    $(js).attr(key, attributes[key]);
+                }
+            }
+        }
+
+        // lets add a callback if any
+        if (onloadCb !== undefined) {
+            js.onload = onloadCb;
+        }
+        
+        // and finally let's inject script into DOM
+        js.src = script;
+        fjs.parentNode.insertBefore(js, fjs);
+    };
+    
+    return module;
+});
